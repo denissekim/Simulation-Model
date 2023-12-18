@@ -1,5 +1,5 @@
 # Simulation Model
-A simulation model written in Python for the generation of spatial-temporal clinical data on infection outbreaks in hospitals.
+A simulation model written in Python for the generation of spatial-temporal clinical data on infection outbreaks in hospitals. Source: https://www.nature.com/articles/s41598-023-47296-1
 
 ## Installation 
 The source code is currently hosted on https://github.com/denissekim/Simulation-Model.
