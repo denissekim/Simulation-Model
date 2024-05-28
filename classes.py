@@ -8,7 +8,7 @@ from scipy.stats import truncnorm, bernoulli
 
 
 class Patient:
-    def __init__(self, id, localization, LOS, age, sex, state=0, record=None, bed=None, remaining_stay=None, colonized=False):
+    def __init__(self, id, localization, LOS, age, sex, state=0, record=None, bed=None, remaining_stay=None, colonized=False, non_susceptible=False):
         self.id = id
         self.l = localization
         self.r = record
@@ -33,6 +33,7 @@ class Patient:
         self.antibiotic = None
         self.microorganism = None
         self.colonized = colonized
+        self.non_susceptible = non_susceptible
 
     def del_bed(self):
         self.b = None

@@ -5,11 +5,13 @@ from random import normalvariate
 import config
 from hospital import *
 from classes import *
+import matplotlib.pyplot as plt
 
 
 # Function that initializes the simulator (hospital, SEIRD-NS vector and patients)
 def initialize():
-    L = initialize_hospital(20, 10, 8, [14, 10, 14, 10, 14, 10, 14, 5], 3, 5, 2, 4)
+    #L = initialize_hospital(20, 10, 8, [14, 10, 14, 10, 14, 10, 14, 5], 3, 5, 2, 4)
+    L = initialize_hospital(20, 10, 7, [36, 7, 6, 6, 6, 6, 24], 3, 5, 2, 4)
     seird_vector, non_susceptibles = initialize_seird()
     P, used_spaces, seird_vector = initialize_patients(L, seird_vector)
     P, seird_vector = expose_hospital(P, seird_vector)
@@ -172,7 +174,7 @@ def simulator(P, A, used_spaces, max_time_infected, steps_to_infect, seird_vecto
                 P = infect_colonized(P)
                 P_a, A, used_spaces, new_ns_id = admit_patients(A, used_spaces, day)
                 P.extend(P_a)
-                P, A, P_d, actual_discharges = discharge_patients(P, P_d, A, day, non_susceptibles)
+                P, A, P_d, actual_discharges, places_discharges = discharge_patients(P, P_d, A, day)
 
             # in each step, patients return from temporal places to their beds
             P, moved_patients, A, used_spaces = move_patients_temporal_places(P, A, used_spaces)
@@ -186,8 +188,7 @@ def simulator(P, A, used_spaces, max_time_infected, steps_to_infect, seird_vecto
 
         discharged_patients, deceased_patients, seird_vector[day] = decease_patients(P, deceased_patients,
                                                                                      seird_vector[day])
-        P, A, discharged_patients, actual_discharges = discharge_patients(P, discharged_patients, A, day,
-                                                                          non_susceptibles)
+        P, A, discharged_patients, actual_discharges, places_discharges = discharge_patients(P, discharged_patients, A, day)
 
         P, used_spaces, seird_vector[day], exposition = expose(P, step, tuplas_patients, used_spaces, steps_to_infect,
                                                                seird_vector[day], exposition, steps_to_infect_p)
@@ -202,22 +203,26 @@ def simulator(P, A, used_spaces, max_time_infected, steps_to_infect, seird_vecto
         # we save the information of the patients in this step
         tuplas_patients[step] = []
         for p in P:
-            # if the patient is colonized, we save state = 5
-            if p.state == 0 and p.colonized:
+            # if the patient is non susceptible, we save state = 5
+            if p.non_susceptible:
                 t = (p.id, 5, copy(p.l))
             else:
                 t = (p.id, p.state, copy(p.l))
             tuplas_patients[step].append(t)
         # if the patient has died in this step, we add it to the historic here, because they aren't in P anymore
-        for p in actual_discharges:
-            if p.state == 4:
-                t = (p.id, p.state, None)
+        for ad in range(len(actual_discharges)):
+            if actual_discharges[ad].state == 4:
+                t = (actual_discharges[ad].id, actual_discharges[ad].state, places_discharges[ad])
                 tuplas_patients[step].append(t)
 
     # save information in a CSV of patients movements and contaminated places
-    print_movements(config.required_parameters['steps'], tuplas_patients, spaces_to_log)
+    print_csv(config.required_parameters['steps'], tuplas_patients, spaces_to_log)
     # save the patients' information
     print_patients_log()
+
+
+
+    plot_simulation_runs(day, seird_vector, non_susceptibles, pobl_day)
 
     return tuplas_patients, seird_vector, non_susceptibles, pobl_day, infected, exposition
 
@@ -225,7 +230,7 @@ def simulator(P, A, used_spaces, max_time_infected, steps_to_infect, seird_vecto
 # Function that updates the SEIRD-NS vector
 def update_seird(seird_vector, non_susc_vector, new_non_susceptibles, patients):
     # we remove those NS patients that were discharged and add the new admissions
-    ids = [p.id for p in patients if p.state == 3]
+    ids = [p.id for p in patients if p.state == 3 and p.non_susceptible]
     discharged_ns = []
     for ns in non_susc_vector:
         if ns not in ids:
@@ -243,7 +248,7 @@ def update_seird(seird_vector, non_susc_vector, new_non_susceptibles, patients):
             e = e + 1
         elif p.state == 2:
             i = i + 1
-        elif p.state == 3 and p.id not in non_susc_vector:
+        elif p.state == 3 and not p.non_susceptible:
             r = r + 1
 
     seird_vector[0] = s
@@ -274,14 +279,15 @@ def admit_patients(available_spaces, used_spaces, day):
     adm_state = {0: 0, 1: 0, 2: 0, 3: 0}
     non_susceptibles_id = []
     for i in range(0, n):
-        colonized = False
+        colonized, non_susceptible = False, False
         # we see if the patient arrives in state S, I or NS
-
         max_value = (required_parameters['arrival_state_NS'] + required_parameters['arrival_state_S'] +
                      required_parameters['arrival_state_I']) * 10000
         ran = random.randint(1, max_value)
+
         if ran <= required_parameters['arrival_state_NS'] * 10000:
             state = 3
+            non_susceptible = True
         elif ran > required_parameters['arrival_state_NS'] * 10000 and ran <= (
                 required_parameters['arrival_state_NS'] + required_parameters['arrival_state_S']) * 10000:
             state = 0
@@ -304,7 +310,7 @@ def admit_patients(available_spaces, used_spaces, day):
             index = random.choice(ER_beds_indexes)
             ER_beds_indexes.remove(index)
             p = Patient(config.patient_id, available_spaces[TypeLocalization.Bed][index], lognormal_distr_los(),
-                        normal_distr_age(), set_sex(), state, colonized=colonized)
+                        normal_distr_age(), set_sex(), state, colonized=colonized, non_susceptible=non_susceptible)
             new_patients.append(p)
             add_patient_log(p, day)
             occupied_beds.append(available_spaces[TypeLocalization.Bed][index])
@@ -318,7 +324,7 @@ def admit_patients(available_spaces, used_spaces, day):
                 index = random.choice(room_beds_indexes)
                 room_beds_indexes.remove(index)
                 p = Patient(config.patient_id, available_spaces[TypeLocalization.Bed][index], lognormal_distr_los(),
-                            normal_distr_age(), set_sex(), state, colonized=colonized)
+                            normal_distr_age(), set_sex(), state, colonized=colonized, non_susceptible=non_susceptible)
                 new_patients.append(p)
                 add_patient_log(p, day)
                 occupied_beds.append(available_spaces[TypeLocalization.Bed][index])
@@ -431,8 +437,9 @@ def decease_patients(patients, deceased_patients, seird_vector):
 
 
 # Function that discharges patients from the hospital
-def discharge_patients(patients, patients_discharge, available_places, day, non_susceptibles):
+def discharge_patients(patients, patients_discharge, available_places, day):
     p_d = []
+    l_d = []
     total_patients = len(patients)
 
     infected = []
@@ -446,6 +453,7 @@ def discharge_patients(patients, patients_discharge, available_places, day, non_
                 p.del_bed()
             if p.l:
                 available_places = free_localization(p.l, available_places)
+                l_d.append(p.l)
                 p.l = None
             modify_patients_log(p, day)
             p_d.append(p)
@@ -454,7 +462,7 @@ def discharge_patients(patients, patients_discharge, available_places, day, non_
     patients = list(set(patients) - set(p_d))
     patients_discharge = list(set(patients_discharge) - set(p_d))
     patients_discharge = list(set(patients_discharge) - set(infected))
-    return patients, available_places, patients_discharge, p_d
+    return patients, available_places, patients_discharge, p_d, l_d
 
 
 # Function that moves the patients that are in temporary places
@@ -948,28 +956,28 @@ def occupy_localization(localization, available_spaces, used_spaces):
 
 
 # output: step | p_id | p_state | localization | p_id | p_state | localization | ...
-def print_movements(max_steps, patients_record, spaces_to_log):
+def print_csv(max_steps, patients_record, spaces_to_log):
     fichero = open('movements.csv', 'w')
     for step in range(0, max_steps):
         s = str(step)
         new_list = sorted(patients_record[step])
         for t in new_list:
             if t[2] is not None:
-                s = s + ';' + str(t[0]) + ';' + str(t[1]) + ';' + t[2].to_string()
-
+                s = s + ';' + str(t[0]) + ';' + str(t[1]) + ';' + t[2].to_string()  # s = s + 'p'+ str(t[0]) + ';' + str(t[1]) + ';' + t[2].to_string() + ';'
             else:
-                s = s + ';' + str(t[0]) + ';' + str(t[1]) + '; Null'
-
+                s = s + ';' + str(t[0]) + ';' + str(t[1]) + ';Null'
+                
         if len(spaces_to_log[step]) > 0:
             s = s + ';' + "places" + ";" + str(spaces_to_log[step][0].id)
+            
             for i in range(1, len(spaces_to_log[step])):
                 s = s + ";" + str(spaces_to_log[step][i].id)
-
+            
         s = s + '\n'
         fichero.write(s)
 
 
-# Output: id | age | sex | LOS | incubation_time | infection_time | treatment_days | treatment | antibiotic | microorganism | adm_day | last_day | died | LOS_final | colonized
+# Output: id | age | sex | LOS | incubation_time | infection_time | treatment_days | treatment | antibiotic | microorganism | adm_day | last_day | died | LOS_final | colonized | non_susceptible
 def print_patients_log():
     fichero = open('patients.csv', 'w')
     for id, patient_data in config.patients_log.items():
@@ -1001,7 +1009,7 @@ def add_patient_log(patient, adm_day):
                                        'antibiotic': patient.antibiotic, 'microorg': patient.microorganism,
                                        'adm_day': adm_day,
                                        'last_day': -1, 'died': False, 'LOS_final': patient.LOS_final,
-                                       'colonized': patient.colonized}
+                                       'colonized': patient.colonized, 'non_susceptible': patient.non_susceptible}
 
 
 # Function that modifies an existing entry of the patients_log
@@ -1083,3 +1091,70 @@ def get_incidence_rate(infected):
 
     print('Tasa de incidencia (casos por 10000 días)', round(rate, 2))
     return rate
+
+def plot_simulation_runs(days, seird_vector, non_susceptibles, population_day):
+    run = []
+    s = [row[0] for row in seird_vector]
+    e = [row[1] for row in seird_vector]
+    i = [row[2] for row in seird_vector]
+    r = [row[3] for row in seird_vector]
+    d = [row[4] for row in seird_vector]
+    ns = [len(row) for row in non_susceptibles]
+    run = [s, e, i, r, d, ns, population_day]
+
+
+    t = np.linspace(0, days+1, days+1)  # 160 puntos entre 0 y 160
+
+    exec = 1
+    
+    # we separate the susceptibles and the rest to escalate them properly
+    fig = plt.figure(figsize=(30, 10))
+    ax = fig.add_subplot(222, axisbelow=True)
+    simS = run[0]
+    simPopulation = run[6]
+    ax.plot(t, simS, lw=0.75, label='Susceptibles', color='#3197f7', linestyle='dashed')
+    ax.plot(t, simPopulation, lw=0.75, label="Total population", color='black', linestyle='dashed')
+    ax.set_xlabel('Time (days)')
+    ax.set_ylabel('Population')
+    # Major ticks every 20, minor ticks every 5
+    major_ticks = np.arange(0, days, 25)
+    minor_ticks = np.arange(0, days, 5)
+    ax.set_xticks(major_ticks)
+    ax.set_xticks(minor_ticks, minor=True)
+    ax.set_yticks(np.arange(90, 150, 20))
+    ax.set_yticks(np.arange(90, 150, 5), minor=True)
+    ax.grid(which='minor', alpha=0.2)
+    ax.grid(which='major', alpha=0.5)
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig(str(exec) + 'Simulator_S+TP.png', bbox_inches='tight')
+    plt.tight_layout()
+
+    fig = plt.figure(figsize=(30, 10))
+    ax = fig.add_subplot(222, axisbelow=True)
+    simE = run[1]
+    simI = run[2]
+    simR = run[3]
+    simD = run[4]
+    simNS = run[5]
+    ax.plot(t, simE, lw=0.75, label='Exposed', color='orange', linestyle='dashed')
+    ax.plot(t, simI, lw=0.75, label='Infected', color='#2fab48', linestyle='dashed')
+    ax.plot(t, simR, lw=0.75, label='Recovered', color='#914fbc', linestyle='dashed')
+    ax.plot(t, simD, lw=0.75, label='Deceased', color='red', linestyle='dashed')
+    ax.plot(t, simNS, lw=0.75, label="Non-susceptibles", color='#25249b', linestyle='dashed')
+    ax.set_xlabel('Time (days)')
+    ax.set_ylabel('Population')
+    # Major ticks every 20, minor ticks every 5
+    major_ticks = np.arange(0, days, 10)
+    minor_ticks = np.arange(0, days, 1)
+    ax.set_xticks(major_ticks)
+    plt.xticks(fontsize=8)
+    ax.set_xticks(minor_ticks, minor=True)
+    ax.set_yticks(np.arange(0, 20, 5))
+    ax.set_yticks(np.arange(0, 20, 1), minor=True)
+    ax.grid(which='minor', alpha=0.2)
+    ax.grid(which='major', alpha=0.5)
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    plt.savefig(str(exec) + 'Simulator_E+I+R+D+NS.png', bbox_inches='tight')
+    plt.tight_layout()
+    exec = exec +1
