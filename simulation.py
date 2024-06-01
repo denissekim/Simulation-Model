@@ -6,7 +6,9 @@ import config
 from hospital import *
 from classes import *
 import matplotlib.pyplot as plt
-
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
 
 # Function that initializes the simulator (hospital, SEIRD-NS vector and patients)
 def initialize():
@@ -1158,3 +1160,28 @@ def plot_simulation_runs(days, seird_vector, non_susceptibles, population_day):
     plt.savefig(str(exec) + 'Simulator_E+I+R+D+NS.png', bbox_inches='tight')
     plt.tight_layout()
     exec = exec +1
+
+    data = {
+        'Exposed': simE,
+        'Infected': simI,
+        'Recovered': simR,
+        'Deceased': simD,
+        'Non-susceptibles': simNS,
+        'time': t
+    }
+
+    figure = go.Figure()
+    figure.add_trace(go.Scatter(x=t, y=simE, name='Exposed', mode='lines', line_color="orange"))
+    figure.add_trace(go.Scatter(x=t, y=simI, name='Infected', mode='lines', line_color='#2fab48'))
+    figure.add_trace(go.Scatter(x=t, y=simR, name='Recovered', mode='lines', line_color='#914fbc'))
+    figure.add_trace(go.Scatter(x=t, y=simD, name='Deceased', mode='lines', line_color='red'))
+    figure.add_trace(go.Scatter(x=t, y=simNS, name='Non-susceptibles', mode='lines', line_color='#25249b'))
+    figure.update_xaxes(title_text="Time (days)")
+    figure.update_yaxes(title_text="Population")
+    figure.layout.plot_bgcolor='white'
+    figure.layout.yaxis.gridcolor='grey'
+    figure.layout.xaxis.gridcolor='grey'
+    #figure.update_layout(
+    #    grid = {'rows': grid_rows, 'columns': grid_cols, 'pattern': "independent"}
+    #)
+    figure.show()
