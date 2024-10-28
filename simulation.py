@@ -352,6 +352,7 @@ def add_step_time_discharge(patients, discharges):
     for p in patients:
         if p.state != 2:
             p.remaining_stay = p.remaining_stay - required_parameters['step_time'] / 24
+
         # if the LOS is reached and the patient isn't infected, they can be discharged
         if p.remaining_stay <= 0:
             if p.state != 2:
@@ -397,11 +398,11 @@ def recover_patients(patients, seird_vector):
                                                             required_parameters['treatment_days_mean'],
                                                             required_parameters['treatment_days_max'])
                     p.max_treatment_days = p.treatment_days
-                    modify_patients_log(p, None)
                     # if there are more treatment days than the remaining stay, we increase the remaining stay
                     if p.remaining_stay - p.treatment_days < 0:
                         p.remaining_stay = p.remaining_stay + p.treatment_days
                         p.LOS_final = p.LOS_final + p.treatment_days
+                    modify_patients_log(p, None)
                 # we check if the patient is recovered
                 else:
                     prob = np.random.triangular(required_parameters['prob_long_recov_min'],
@@ -1019,7 +1020,7 @@ def modify_patients_log(patient, last_day):
     # if the patient has died or has been discharged
     if last_day is not None:
         # if the patient's LOS has increased due to the infection
-        config.patients_log[patient.id]['LOS_final'] = patient.LOS_final
+        config.patients_log[patient.id]['LOS_final'] = last_day - config.patients_log[patient.id]['adm_day'] #patient.LOS_final
         config.patients_log[patient.id]['infect_time'] = patient.duration_infection
         config.patients_log[patient.id]['treatment'] = patient.treatment
         config.patients_log[patient.id]['antibiotic'] = patient.antibiotic

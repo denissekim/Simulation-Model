@@ -16,7 +16,7 @@ class Patient:
         self.sex = sex
         self.b = bed
         self.changed_ward = False
-        # state = [0, 1, 2, 3, 4, 5] -> [S, E, I, R, D, C]
+        # state = [0, 1, 2, 3, 4, 5] -> [S, E, I, R, D, NS]
         self.state = state
         self.LOS_initial = LOS
         self.LOS_final = LOS
