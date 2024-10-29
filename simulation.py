@@ -13,7 +13,7 @@ import pandas as pd
 # Function that initializes the simulator (hospital, SEIRD-NS vector and patients)
 def initialize():
     #L = initialize_hospital(20, 10, 8, [14, 10, 14, 10, 14, 10, 14, 5], 3, 5, 2, 4)
-    L = initialize_hospital(20, 10, 7, [36, 7, 6, 6, 6, 6, 24], 3, 5, 2, 4)
+    L = initialize_hospital(20, 10, 7, [36, 7, 6, 6, 6, 6, 24], 3, 5, 2, 4) 
     seird_vector, non_susceptibles = initialize_seird()
     P, used_spaces, seird_vector = initialize_patients(L, seird_vector)
     P, seird_vector = expose_hospital(P, seird_vector)
@@ -78,9 +78,12 @@ def initialize_patients(localizations, seird_vector):
             for p in P:
                 p.remaining_stay = p.remaining_stay - 1
             for i in range(round(config.required_parameters['arrival_rate'])):
-                # we create a patient
-                P.append(Patient(config.patient_id, None, lognormal_distr_los(), normal_distr_age(), set_sex()))
-                config.patient_id = config.patient_id + 1
+                if (len(P) < config.hosp_occupancy_rate):
+                    # we create a patient
+                    P.append(Patient(config.patient_id, None, lognormal_distr_los(), normal_distr_age(), set_sex()))
+                    config.patient_id = config.patient_id + 1
+                else:
+                    break
 
     # we assign a bed to each patient
     for p in P:
@@ -1111,11 +1114,11 @@ def plot_simulation_runs(days, seird_vector, non_susceptibles, population_day):
     exec = 1
     
     # we separate the susceptibles and the rest to escalate them properly
-    fig = plt.figure(figsize=(30, 10))
+    fig = plt.figure(figsize=(40, 10))
     ax = fig.add_subplot(222, axisbelow=True)
     simS = run[0]
     simPopulation = run[6]
-    ax.plot(t, simS, lw=0.75, label='Susceptibles', color='#3197f7', linestyle='dashed')
+    ax.plot(t, simS, lw=0.75, label='Susceptible', color='#3197f7', linestyle='dashed')
     ax.plot(t, simPopulation, lw=0.75, label="Total population", color='black', linestyle='dashed')
     ax.set_xlabel('Time (days)')
     ax.set_ylabel('Population')
@@ -1132,7 +1135,7 @@ def plot_simulation_runs(days, seird_vector, non_susceptibles, population_day):
     plt.savefig(str(exec) + 'Simulator_S+TP.png', bbox_inches='tight')
     plt.tight_layout()
 
-    fig = plt.figure(figsize=(30, 10))
+    fig = plt.figure(figsize=(40, 10))
     ax = fig.add_subplot(222, axisbelow=True)
     simE = run[1]
     simI = run[2]
@@ -1143,14 +1146,14 @@ def plot_simulation_runs(days, seird_vector, non_susceptibles, population_day):
     ax.plot(t, simI, lw=0.75, label='Infected', color='#2fab48', linestyle='dashed')
     ax.plot(t, simR, lw=0.75, label='Recovered', color='#914fbc', linestyle='dashed')
     ax.plot(t, simD, lw=0.75, label='Deceased', color='red', linestyle='dashed')
-    ax.plot(t, simNS, lw=0.75, label="Non-susceptibles", color='#25249b', linestyle='dashed')
+    ax.plot(t, simNS, lw=0.75, label="Non-susceptible", color='#25249b', linestyle='dashed')
     ax.set_xlabel('Time (days)')
     ax.set_ylabel('Population')
     # Major ticks every 20, minor ticks every 5
     major_ticks = np.arange(0, days, 10)
     minor_ticks = np.arange(0, days, 1)
     ax.set_xticks(major_ticks)
-    plt.xticks(fontsize=8)
+    plt.xticks(fontsize=5)
     ax.set_xticks(minor_ticks, minor=True)
     ax.set_yticks(np.arange(0, 20, 5))
     ax.set_yticks(np.arange(0, 20, 1), minor=True)

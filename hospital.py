@@ -2,6 +2,31 @@
 from scipy.stats import truncnorm
 from classes import Localization, TypeLocalization
 import config
+import random
+
+
+def distribute_rooms(beds, services, min_rooms):
+    if beds % 2 != 0:
+        return "The number of beds must be pair."
+    if beds < 0 or services < 0 or min_rooms < 0:
+        return "All parameters must be positive."
+    
+    total_rooms = beds // 2
+    max_rooms = total_rooms // services
+    rooms_per_service = []
+    
+    for _ in range(services - 1):
+        rooms = random.randint(min_rooms, max_rooms)
+        rooms_per_service.append(rooms)
+        total_rooms -= rooms
+    
+    #if (total_rooms > 0):
+    rooms_per_service.append(total_rooms)  # Asigna las habitaciones restantes al último servicio
+    
+    if any(h < min_rooms or h > max_rooms for h in rooms_per_service[:-1]):
+        return "It is not possible to distribute rooms within the specified limits."
+
+    return rooms_per_service
 
 
 # Function that initialize a new hospital
@@ -14,6 +39,8 @@ import config
 # rx_nrooms = nº of radiology rooms
 # rx_nbeds = nº of beds in each radiology room
 def initialize_hospital(er_nbeds, icu_nbeds, nwards, wards_nrooms, sx_nrooms, rx_nrooms, room_nbeds, rx_nbeds):
+    wards_nrooms = distribute_rooms(1200, nwards, 5)
+
     # ER, ICU
     er = Localization(0, TypeLocalization.ER)
     icu = Localization(1, TypeLocalization.ICU)
