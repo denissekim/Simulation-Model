@@ -3,11 +3,11 @@
 required_parameters = {
     'n_patients': 1,                  # hospital occupation rate
     'steps': 2190,                      # total duration of the simulation 1095
-    'population': 680000,               # total population of the hospital area 170000
+    'population': 986320,               # total population of the hospital area 170000
     'step_time': 8,                     # duration of each step (hours)
     'init_exposed': 1,                  # number of exposed patients at the beginning of the simulation
     'init_infected': 0,                 # number of infected patients at the beginning of the simulation
-    'arrival_rate': 104.05,             # patients arrival rate per day 18.603
+    'arrival_rate': 154.185,             # patients arrival rate per day 18.603
     'prob_arrival_ER': 0.7,             # proportion of arrivals through the ER
     'arrival_state_colonized': 0.076,   # proportion of colonized patients in the whole population of the hospital area
     'arrival_state_S': 0.9973429,       # proportion of arrivals in state S

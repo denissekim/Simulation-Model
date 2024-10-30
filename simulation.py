@@ -453,7 +453,7 @@ def discharge_patients(patients, patients_discharge, available_places, day):
         # if the patient was exposed at the end of their LOS, but then got infected, the patient remains in the hospital
         if p.state == 2:
             infected.append(p)
-        elif p.state == 4 or (p.state != 4 and total_patients > normal_distr_occupancy_rate()):
+        else: #if p.state == 4 or (p.state != 4 and total_patients > normal_distr_occupancy_rate()):
             if p.b:
                 available_places = free_localization(p.b, available_places)
                 p.del_bed()
