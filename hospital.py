@@ -39,7 +39,7 @@ def distribute_rooms(beds, services, min_rooms):
 # rx_nrooms = nº of radiology rooms
 # rx_nbeds = nº of beds in each radiology room
 def initialize_hospital(er_nbeds, icu_nbeds, nwards, wards_nrooms, sx_nrooms, rx_nrooms, room_nbeds, rx_nbeds):
-    wards_nrooms = distribute_rooms(1200, nwards, 5)
+    wards_nrooms = distribute_rooms(182, nwards, 5)
 
     # ER, ICU
     er = Localization(0, TypeLocalization.ER)
