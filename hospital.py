@@ -39,7 +39,8 @@ def distribute_rooms(beds, services, min_rooms):
 # rx_nrooms = nº of radiology rooms
 # rx_nbeds = nº of beds in each radiology room
 def initialize_hospital(er_nbeds, icu_nbeds, nwards, wards_nrooms, sx_nrooms, rx_nrooms, room_nbeds, rx_nbeds):
-    wards_nrooms = distribute_rooms(182, nwards, 5)
+    wards_nrooms = distribute_rooms(186, nwards, 5)
+    print(wards_nrooms)
 
     # ER, ICU
     er = Localization(0, TypeLocalization.ER)
@@ -85,6 +86,14 @@ def initialize_hospital(er_nbeds, icu_nbeds, nwards, wards_nrooms, sx_nrooms, rx
     for i in range(rx_nrooms):
         beds, index = create_beds(rx_nbeds, index, rxs[i], 0)
         L = L + beds
+
+
+    # We save the hospital in a csv file
+    fichero = open('locations.csv', 'w')
+    fichero.write("id_location; infected; ids_adjacents; ids_children; name; id_parent; floor; service\n")
+
+    for localization in L:
+        fichero.write(localization.print_to_csv() + "\n")
 
     return L
 

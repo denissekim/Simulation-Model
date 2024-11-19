@@ -74,6 +74,42 @@ class Localization:
     def print_localization(self):
         print(self.to_string())
 
+    def print_to_csv(self):
+        nombre = str(self.name.name) + "_" + str(self.id)
+        # save the service name if it is a service
+        if (self.name not in [TypeLocalization.Room, TypeLocalization.Bed]):
+            service = self.name.name
+        else:
+            service = "NULL"
+
+        # save the adjacents
+        if (self.adjacent is not None):
+            adjacents = "{" + str(self.adjacent[0].id) 
+            for i in range(1, len(self.adjacent)):
+                adjacents = adjacents + "," + str(self.adjacent[i].id)
+            adjacents = adjacents + "}"
+        else:
+            adjacents = "NULL"
+
+        # save the children
+        if (self.children is not None):
+            kids = "{" + str(self.children[0].id) 
+            for i in range(1, len(self.children)):
+                kids = kids + "," + str(self.children[i].id)
+            kids = kids + "}"
+        else:
+            kids = "NULL"
+
+        # save the parent
+        if (self.located_in is not None):
+            father = str(self.located_in.id)
+        else:
+            father = "NULL"
+
+
+        s = str(self.id) + ';' + str(self.infected) + ';' + adjacents + ';' + kids + ';' + nombre + ';' + father + ';NULL;' + str(service)
+        return s
+
     def is_temporal_localization(self):
         return self.name in [TypeLocalization.Surgery, TypeLocalization.Radiology] or self.located_in.name in [TypeLocalization.Surgery, TypeLocalization.Radiology]
 
